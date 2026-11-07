@@ -1,0 +1,179 @@
+
+### Q1 Why start (share of relevant posts)
+long_term_wealth        0.165
+specific_goal           0.061
+tax_saving              0.015
+beat_fd_or_inflation    0.014
+saving_habit            0.011
+finfluencer_content     0.005
+social_influence        0.004
+
+### Q1 Expectation
+expectation
+not_mentioned                     0.923
+understood_volatility             0.047
+expected_quick_or_high_returns    0.019
+expected_steady_fd_like_growth    0.010
+
+### Q2/3 SIP action
+sip_action
+none_mentioned             522
+continued                  170
+started                     96
+considering_stopping        49
+redeemed                    47
+stopped                     30
+increased_or_stepped_up     28
+switched_fund               24
+switched_platform           14
+skipped                     11
+reduced                      2
+
+### Q3 Triggers among at-risk/dropped posts (share of those posts)
+app_bug_or_ux_friction          0.421
+distrust_platform_or_mf         0.243
+market_fall_negative_returns    0.139
+fees_exit_load_tax              0.135
+returns_below_expectation       0.131
+too_many_funds_or_overlap       0.073
+comparison_with_others          0.066
+confusing_metrics               0.058
+conflicting_advice              0.050
+mandate_autopay_failure         0.050
+flat_or_low_returns             0.046
+cash_need_expense               0.042
+goal_reached_or_changed         0.012
+insufficient_balance            0.012
+income_change_job_loss          0.012
+lost_interest_or_forgot         0.008
+
+### Q3 Triggers among likely-continue posts
+market_fall_negative_returns    0.079
+too_many_funds_or_overlap       0.045
+conflicting_advice              0.029
+cash_need_expense               0.025
+app_bug_or_ux_friction          0.025
+flat_or_low_returns             0.021
+fees_exit_load_tax              0.021
+returns_below_expectation       0.021
+income_change_job_loss          0.008
+mandate_autopay_failure         0.008
+distrust_platform_or_mf         0.008
+confusing_metrics               0.004
+insufficient_balance            0.004
+goal_reached_or_changed         0.004
+comparison_with_others          0.004
+
+### Q4 Check frequency (mentioned only)
+check_frequency
+daily                   5
+rarely                  4
+monthly_or_debit_day    1
+
+### Q4 What they check
+xirr                  0.040
+returns_percent       0.028
+fund_comparison       0.027
+absolute_gain_loss    0.023
+current_value         0.023
+nav_or_units          0.009
+instalment_status     0.008
+one_day_change        0.006
+
+### Q5 In-app confusion
+fund_selection              0.166
+portfolio_overlap           0.055
+tax_or_exit_load            0.050
+pause_skip_cancel_flow      0.040
+sip_debit_date_or_status    0.031
+direct_vs_regular           0.026
+mandate_setup               0.021
+nav_and_units               0.015
+xirr_vs_absolute_returns    0.014
+negative_returns_display    0.010
+
+### Q6 Outside-app help
+reddit_or_forums             0.108
+youtube                      0.085
+friends_family_colleagues    0.011
+advisor_or_ca                0.008
+google_search                0.007
+chatgpt_or_ai                0.006
+news                         0.001
+instagram_or_finfluencer     0.001
+
+### Q6 Content type (asking strangers = question_seeking_help)
+content_type
+question_seeking_help      0.555
+app_review_or_complaint    0.250
+advice_to_others           0.090
+own_experience             0.087
+other                      0.019
+
+### Q7 Expectation vs continuation (row %)
+continuation_signal             at_risk  dropped  likely_continue  unclear
+expectation                                                               
+expected_quick_or_high_returns     0.32     0.00             0.11     0.58
+expected_steady_fd_like_growth     0.30     0.00             0.10     0.60
+not_mentioned                      0.20     0.07             0.22     0.51
+understood_volatility              0.02     0.00             0.74     0.23
+
+### Q7 Emotion vs continuation (row %)
+continuation_signal  at_risk  dropped  likely_continue  unclear
+emotion                                                        
+anxious_or_worried      0.50     0.03             0.12     0.35
+confident_or_calm       0.00     0.00             0.86     0.14
+confused                0.24     0.03             0.08     0.65
+disappointed            0.47     0.15             0.15     0.23
+frustrated_with_app     0.39     0.23             0.03     0.36
+indifferent             0.00     0.00             0.00     1.00
+neutral                 0.04     0.01             0.29     0.66
+regretful               0.37     0.11             0.11     0.42
+
+### Q8 Segment: income_stability (n known=80)
+continuation_signal  at_risk  dropped  likely_continue  unclear   n  at_risk_or_dropped_%
+income_stability                                                                         
+fixed_salary               3        2               19       30  54                   9.0
+no_own_income              2        0                3        6  11                  18.0
+variable_income            0        2                4        9  15                  13.0
+
+### Q8 Segment: age_band (n known=198)
+continuation_signal  at_risk  dropped  likely_continue  unclear   n  at_risk_or_dropped_%
+age_band                                                                                 
+25_34                      5        5               35       46  91                  11.0
+35_plus                    1        0                8        9  18                   6.0
+under_25                  10        0               32       47  89                  11.0
+
+### Q8 Segment: money_source (n known=91)
+continuation_signal     at_risk  dropped  likely_continue  unclear   n  at_risk_or_dropped_%
+money_source                                                                                
+business_or_freelance         0        1                1        5   7                  14.0
+family_or_pocket_money        1        1                0        3   5                  40.0
+salary                        3        2               19       37  61                   8.0
+savings_or_lumpsum            0        0                1       17  18                   0.0
+
+### Q8 Segment: influenced_by (n known=80)
+continuation_signal  at_risk  dropped  likely_continue  unclear   n  at_risk_or_dropped_%
+influenced_by                                                                            
+advisor                    3        2                3       13  21                  24.0
+app_marketing              0        0                0        1   1                   0.0
+finfluencer                7        1                6        7  21                  38.0
+friends_family             3        0                5        4  12                  25.0
+self_research              2        0               10       13  25                   8.0
+
+### Q8 Segment: investor_experience (n known=271)
+continuation_signal  at_risk  dropped  likely_continue  unclear    n  at_risk_or_dropped_%
+investor_experience                                                                       
+experienced                2        2               17       11   32                  12.0
+first_time                15        4               43      100  162                  12.0
+some_experience           10        2               35       30   77                  16.0
+
+### Q2 Journey stage vs continuation
+continuation_signal  at_risk  dropped  likely_continue  unclear
+journey_stage                                                  
+month_0_3                  8        5               24       16
+month_3_6                  3        1                6        2
+month_6_12                 8        2                8        1
+pre_start                  5        0                5      158
+unknown                  128       46              115      284
+year_1_plus               42       11               84       31

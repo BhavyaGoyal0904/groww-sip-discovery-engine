@@ -1,0 +1,23 @@
+{
+ "raw_rows": 430169,
+ "filtered": 73625,
+ "ai_tagged": 1500,
+ "ai_relevant": 993,
+ "relevant_full": 38647,
+ "validator_errors": 0,
+ "sources": {
+  "Play Store": 274506,
+  "App Store": 5080,
+  "Reddit": 98141,
+  "Forums": 13047,
+  "Social": 113,
+  "YouTube": 39282
+ },
+ "cv": {
+  "rel_acc": 0.782,
+  "rel_p": 0.865,
+  "rel_r": 0.795,
+  "stop_p": 0.327,
+  "stop_r": 0.755
+ }
+}
