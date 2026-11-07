@@ -332,14 +332,6 @@ without recommending funds or using fear / FOMO.
 - **Outcome:** continuation signal, unmet need, verbatim evidence quote, confidence
 """)
 
-    st.subheader("Where a human corrected the AI")
-    st.markdown("""
-1. **Inconsistent relevance rules between AI coders** (generic "don't stop your SIP" advice and industry statistics coded both ways) → one rule in codebook v2.
-2. **Missing codebook values** (irregular income vs a fixed SIP; a SIP cancelled by the platform) → added to codebook v2.
-3. **Over-split clusters**: "review my portfolio" posts split into 13 near-duplicates → merged into 2 themes.
-4. **Unreliable classifier**: stop/pause classifier precision was only """ + f"{meta['cv']['stop_p']:.0%}" + """ → severity taken from AI-tagged posts instead.
-""")
-
     st.subheader("How the live features work")
     c1, c2 = st.columns(2)
     with c1:
