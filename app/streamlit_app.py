@@ -46,7 +46,7 @@ st.caption("Why do first-time mutual-fund investors stop their SIPs in the first
 if not HAS_KEY:
     st.warning("AI features are off: no MISTRAL_API_KEY is configured. The dashboard and evidence search still work.")
 
-tab_dash, tab_ask, tab_tag, tab_eval = st.tabs(["Dashboard", "Ask the data", "Tag a review (live)", "How it works & quality"])
+tab_dash, tab_flow, tab_ask, tab_tag, tab_eval = st.tabs(["Dashboard", "How the engine works", "Ask the data", "Tag a review (live)", "Quality & limits"])
 
 # ---------------- Dashboard ----------------
 with tab_dash:
@@ -221,20 +221,119 @@ with tab_tag:
     if not HAS_KEY:
         st.caption("Tagging needs a MISTRAL_API_KEY.")
 
-# ---------------- How it works ----------------
-with tab_eval:
-    st.subheader("Pipeline")
-    st.markdown(f"""
-1. **Collect** — {meta['raw_rows']:,} posts from 6 sources, Nov 2024–Nov 2026, normalised to one schema.
-2. **Rule filter (free)** — keep SIP/MF posts; drop <60 chars, deleted, staff replies, trading-only, spam, duplicates → **{meta['filtered']:,}**.
-3. **Embed** — multilingual MiniLM (handles Hindi/Hinglish), run locally.
-4. **AI relevance + codebook tagging** — stratified sample of {meta['ai_tagged']:,} posts tagged on 24 fields by an LLM; a validator
-   rejects any output with missing fields, illegal values, or a quote that is not verbatim → **{meta['validator_errors']} errors** after fixes.
-5. **Scale to full corpus** — classifier trained on AI labels: relevance accuracy {meta['cv']['rel_acc']:.0%},
-   precision {meta['cv']['rel_p']:.0%} (5-fold CV) → **{meta['relevant_full']:,}** relevant posts.
-6. **Themes** — k-means (k=30) → AI-named clusters → human review merged them into **10 themes**.
-7. **Quantify & rank** — reach, severity, first-year share, segment skew, addressability → opportunity score.
+# ---------------- How the engine was built ----------------
+with tab_flow:
+    st.markdown("How 430k public posts became a ranked list of opportunity areas. Each step is labelled with **who does the work**: "
+                "rules (free, deterministic), a local ML model, an LLM, or a human review.")
+    st.graphviz_chart(f"""
+digraph G {{
+  rankdir=TB; nodesep=0.35; ranksep=0.32; bgcolor="transparent";
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.18,0.08", penwidth=1.2];
+  edge [color="#6b7280", arrowsize=0.7];
+  src  [label="1  COLLECT\\n6 sources: Play Store, App Store, Reddit,\\nTradingQ&A / ValuePickr, X / LinkedIn, YouTube\\n{meta['raw_rows']:,} posts", fillcolor="#e5e7eb"];
+  flt  [label="2  RULE FILTER  [rules]\\nSIP/MF terms, length, staff replies,\\ntrading-only, spam, duplicates\\n→ {meta['filtered']:,} posts", fillcolor="#dbeafe"];
+  emb  [label="3  EMBED  [local ML]\\nmultilingual MiniLM (Hindi / Hinglish)\\n→ 384-dim vector per post", fillcolor="#dbeafe"];
+  smp  [label="4  STRATIFIED SAMPLE  [rules]\\n{meta['ai_tagged']:,} posts across all 6 sources\\n70% high-priority, 30% random", fillcolor="#dbeafe"];
+  tag  [label="5  AI RELEVANCE + CODEBOOK TAGGING  [LLM]\\n24 fields: stage, action, triggers, checking,\\noutside-app help, segment, unmet need, quote", fillcolor="#fde68a", shape=box];
+  val  [label="VALIDATOR  [rules]\\nschema · allowed values · quote verbatim\\n→ {meta['validator_errors']} errors after fixes", fillcolor="#fecaca", shape=octagon];
+  cls  [label="6  SCALE TO FULL CORPUS  [local ML]\\nclassifier trained on AI labels\\nrelevance precision {meta['cv']['rel_p']:.0%} → {meta['relevant_full']:,} posts", fillcolor="#dbeafe"];
+  clu  [label="7  CLUSTER  [local ML]\\nk-means, k = 30", fillcolor="#dbeafe"];
+  nam  [label="8  NAME CLUSTERS  [LLM]\\nterms + representative posts", fillcolor="#fde68a"];
+  hum  [label="9  REVIEW & MERGE  [human]\\n30 clusters → 10 themes\\ncodebook v1 → v2", fillcolor="#bbf7d0", shape=house];
+  scr  [label="10  QUANTIFY & RANK  [rules]\\nreach · severity · first-year share ·\\nsegment skew · addressability → score", fillcolor="#dbeafe"];
+  out  [label="OPPORTUNITY AREAS\\nmapped to the metric tree (M1–M6)", fillcolor="#e5e7eb", shape=doubleoctagon];
+  src -> flt -> emb -> smp -> tag -> val -> cls -> clu -> nam -> hum -> scr -> out;
+  val -> tag [label=" fail → re-code", fontsize=9, fontcolor="#6b7280", style=dashed];
+}}""", width="stretch")
+    st.caption("Legend: grey = data · blue = rules / local ML (free, repeatable) · yellow = LLM · red octagon = automatic quality gate · "
+               "green house = human review. Labels in [brackets] say the same thing for anyone who cannot rely on colour.")
+
+    st.subheader("Step by step")
+    steps = pd.DataFrame([
+        ["1 Collect", "Public posts from 6 source types, Nov 2024 – Nov 2026, normalised to one schema",
+         "Scrapers / public APIs", f"{meta['raw_rows']:,} posts", "Source + date kept for every post"],
+        ["2 Rule filter", "Keep posts mentioning SIP / mutual-fund terms; drop < 60 chars, deleted, platform-staff replies, "
+         "trading-only (F&O, intraday, IPO) without MF terms, spam, duplicates", "Rules (regex)", f"{meta['filtered']:,} posts",
+         "Counts logged per rule"],
+        ["3 Embed", "Turn each post into a vector so similar posts sit close together; model handles Hindi and Hinglish",
+         "Local ML (MiniLM)", "1 vector / post", "—"],
+        ["4 Sample", "Pick posts for AI tagging: fixed quota per source so Reddit doesn't drown out app reviews; 30% random so the "
+         "classifier also sees irrelevant posts", "Rules", f"{meta['ai_tagged']:,} posts", "Stratified by source × priority"],
+        ["5 AI tagging", "One LLM pass per post: is it relevant, and if so code it against a fixed 24-field codebook (closed lists, "
+         "so results can be counted)", "LLM", f"{meta['ai_relevant']:,} relevant", "Validator: schema, allowed values, verbatim quote"],
+        ["6 Scale up", "Train a classifier on the AI labels and apply it to every filtered post",
+         "Local ML (logistic regression)", f"{meta['relevant_full']:,} relevant (est.)",
+         f"5-fold CV: accuracy {meta['cv']['rel_acc']:.0%}, precision {meta['cv']['rel_p']:.0%}"],
+        ["7–8 Cluster & name", "Group relevant posts by meaning (k = 30) and have the LLM name each group from its top terms and "
+         "posts", "Local ML + LLM", "30 clusters", "Representative posts shown for review"],
+        ["9 Review", "Merge near-duplicate clusters, fix codebook gaps, standardise rules where AI coders disagreed",
+         "Human", "10 themes, codebook v2", "Every change logged in the Evidence Log"],
+        ["10 Rank", "Score each theme and map it to the metric tree", "Rules", "Ranked opportunities",
+         "Small-sample numbers flagged"],
+    ], columns=["Step", "What happens", "Done by", "Output", "Quality check"])
+    st.dataframe(steps, hide_index=True, width="stretch")
+
+    a, b = st.columns(2)
+    with a:
+        st.subheader("Opportunity score")
+        st.markdown("""
+| Factor | Weight | Source |
+|---|---|---|
+| Reach (√ share of relevant posts) | 25% | full corpus |
+| Severity (share at risk or dropped) | 30% | AI-tagged posts |
+| First-year share | 15% | AI-tagged posts |
+| Addressability (1–5) | 30% | human rating |
+
+Each factor is min-max normalised, then weighted. Addressability asks how much a Groww product change could move the behaviour
+without recommending funds or using fear / FOMO.
 """)
+    with b:
+        st.subheader("The codebook (24 fields)")
+        st.markdown("""
+- **Journey:** relevance, content type, journey stage (0–3, 3–6, 6–12, 12+ months)
+- **Why they started:** motivation, expectation
+- **What happened:** SIP action (continued, paused, skipped, reduced, stopped, redeemed, switched…), triggers (19 values)
+- **Checking:** how often, what they look at
+- **Feelings and help:** emotion, where they went outside the app, what confused them in the app
+- **Segment signals:** income stability, age band, money source, who influenced them, experience
+- **Outcome:** continuation signal, unmet need, verbatim evidence quote, confidence
+""")
+
+    st.subheader("Where a human corrected the AI")
+    st.markdown("""
+1. **Inconsistent relevance rules between AI coders** (generic "don't stop your SIP" advice and industry statistics coded both ways) → one rule in codebook v2.
+2. **Missing codebook values** (irregular income vs a fixed SIP; a SIP cancelled by the platform) → added to codebook v2.
+3. **Over-split clusters**: "review my portfolio" posts split into 13 near-duplicates → merged into 2 themes.
+4. **Unreliable classifier**: stop/pause classifier precision was only """ + f"{meta['cv']['stop_p']:.0%}" + """ → severity taken from AI-tagged posts instead.
+""")
+
+    st.subheader("How the live features work")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("**Ask the data**")
+        st.graphviz_chart("""
+digraph A { rankdir=TB; bgcolor="transparent"; node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, fillcolor="#dbeafe"];
+  q [label="Question"]; g [label="Advice guard [rules]\\nfund-pick questions declined", shape=octagon, fillcolor="#fecaca"];
+  r [label="Retrieve 18 posts [BM25]"]; l [label="Answer only from them [LLM]", fillcolor="#fde68a"];
+  v [label="Checks [rules]: ≥2 citations, no invented P#,\\nverbatim quotes, no advice", shape=octagon, fillcolor="#fecaca"];
+  s [label="Show answer + checks", fillcolor="#bbf7d0"]; f [label="Withhold → show raw evidence", fillcolor="#e5e7eb"];
+  q -> g -> r -> l -> v; v -> s [label=" pass", fontsize=9]; v -> f [label=" fail", fontsize=9]; }""", width="stretch")
+    with c2:
+        st.markdown("**Tag a review**")
+        st.graphviz_chart("""
+digraph B { rankdir=TB; bgcolor="transparent"; node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, fillcolor="#dbeafe"];
+  p [label="Pasted post"]; l [label="Code against codebook v2 [LLM]", fillcolor="#fde68a"];
+  v [label="Checks [rules]: all fields, allowed values,\\nverbatim quote, action ↔ signal agree, no advice", shape=octagon, fillcolor="#fecaca"];
+  s [label="Show tags + theme it feeds", fillcolor="#bbf7d0"]; f [label="Withhold tags, show which check failed", fillcolor="#e5e7eb"];
+  p -> l -> v; v -> s [label=" pass", fontsize=9]; v -> f [label=" fail", fontsize=9]; }""", width="stretch")
+
+    st.subheader("Stack")
+    st.markdown("Python · pandas · sentence-transformers (multilingual MiniLM) · scikit-learn (logistic regression, k-means) · "
+                "LLM tagging with a JSON-schema codebook · Mistral (live app) · Streamlit · code on "
+                "[GitHub](https://github.com/BhavyaGoyal0904/groww-sip-discovery-engine).")
+
+# ---------------- Quality & limits ----------------
+with tab_eval:
     st.subheader("Quality gates in this app")
     st.markdown("""
 - **Ask the data:** answers come only from retrieved posts; must cite ≥2 posts; every [P#] must exist; quoted words must appear in
