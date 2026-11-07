@@ -148,7 +148,7 @@ with tab_ask:
                 with st.spinner("Reading the evidence..."):
                     try:
                         out, raw = llm.chat_json(llm.ask_prompt(q, hits), llm.ASK_SYSTEM)
-                        checks = llm.validate_answer(out, hits)
+                        checks, good_quotes = llm.validate_answer(out, hits)
                     except RuntimeError as e:
                         out, checks = None, None
                         st.error(str(e))
@@ -159,7 +159,7 @@ with tab_ask:
                     elif passed:
                         st.success("Answer (passed all quality checks)")
                         st.markdown(out.get("answer", ""))
-                        for qq in out.get("quotes", []):
+                        for qq in good_quotes:
                             st.markdown(f"> “{qq.get('quote')}” — [P{qq.get('p')}]")
                     else:
                         st.error("The AI answer failed a quality check, so it is not shown. Here is the raw evidence instead.")
