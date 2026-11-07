@@ -46,7 +46,7 @@ st.caption("Why do first-time mutual-fund investors stop their SIPs in the first
 if not HAS_KEY:
     st.warning("AI features are off: no MISTRAL_API_KEY is configured. The dashboard and evidence search still work.")
 
-tab_dash, tab_ask, tab_tag, tab_flow = st.tabs(["Dashboard", "Ask the data", "Tag a review (live)", "Workflow"])
+tab_dash, tab_research, tab_ask, tab_tag, tab_flow = st.tabs(["Dashboard", "User research", "Ask the data", "Tag a review (live)", "Workflow"])
 
 # ---------------- Dashboard ----------------
 with tab_dash:
@@ -356,3 +356,91 @@ digraph B { rankdir=TB; bgcolor="transparent"; node [shape=box, style="rounded,f
     st.markdown("Python · pandas · sentence-transformers (multilingual MiniLM) · scikit-learn (logistic regression, k-means) · "
                 "LLM tagging with a JSON-schema codebook · Mistral (live app) · Streamlit · code on "
                 "[GitHub](https://github.com/BhavyaGoyal0904/groww-sip-discovery-engine).")
+
+
+# ---------------- User research (Google Form) ----------------
+with tab_research:
+    sv = pd.read_csv(os.path.join(HERE, "data", "survey.csv")).rename(columns={"Timestamp": "id"})
+    st_ = sv[sv.started == "Yes"].copy()
+    disrupt_vals = ("Paused", "Stopped", "Skipped")
+    st_["disrupted"] = st_.done.fillna("").str.contains("|".join(disrupt_vals))
+    st_["young"] = st_.age.isin(["21–25", "26–30"])
+
+    st.markdown("Primary research with Indian SIP investors via a Google Form (6–7 Nov 2026). "
+                "No names, PAN, account numbers or screenshots were collected. Respondents are shown as r1–r15.")
+    m = st.columns(5)
+    m[0].metric("Responses", len(sv))
+    m[1].metric("Started a SIP", len(st_))
+    m[2].metric("First-ever MF", int((st_.first_mf == "Yes").sum()))
+    m[3].metric("Paused / stopped / skipped", int(st_.disrupted.sum()))
+    m[4].metric("Used app help when unsure", int(st_.unsure.fillna("").str.contains("app", case=False).sum()))
+
+    st.subheader("Summary")
+    yd = st_[st_.young]; od = st_[~st_.young]
+    st.markdown(f"""
+1. **Every disruption came from young, app-based investors.** {int(yd.disrupted.sum())} of {len(yd)} respondents aged 21–30
+   paused, stopped or skipped; {int(od.disrupted.sum())} of {len(od)} aged 46+ (mostly advisor-led) did.
+2. **Nobody turns to the app when unsure.** 0 of {len(st_)} picked the app's help pages; an advisor / CA was the top answer,
+   then Instagram, Reddit, Google, friends and ChatGPT.
+3. **The trigger is one fund falling, not the market.** *"Invested in tata digital fund but with AI boom saw massive loss that's
+   why i stopped my SIP"* · *"That particular MF was going down consistently and I wanted to try one of a different domain"*
+4. **People who stopped feel worse about returns:** average {st_[st_.disrupted].feel.mean():.2f} / 5 vs
+   {st_[~st_.disrupted].feel.mean():.2f} / 5 for everyone else.
+5. **They read simple numbers.** Current value and ₹ gain / loss dominate; *"XIRR not sure what this is."*
+6. **Family starts it, but isn't there later.** Family influenced {int(st_.influence.fillna('').str.contains('Family').sum())}
+   of {len(st_)} at the start; only 2 go back to family or friends when unsure.
+
+**Emerging root cause:** advisor-led investors have a human who absorbs their doubt. App-only first-timers borrowed a family
+member's conviction to start, and when one fund falls there is nobody to interpret it, so they stop or switch on instinct.
+""")
+
+    def counts(col, data=st_):
+        v = data[col].dropna().astype(str).str.split(";").explode().str.strip()
+        return v[v != ""].value_counts().rename_axis(col).rename("people")
+
+    st.subheader("Charts")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("**When unsure, what do you do?**")
+        st.bar_chart(counts("unsure"), horizontal=True)
+        st.markdown("**Who influenced you to start?**")
+        st.bar_chart(counts("influence"), horizontal=True)
+        st.markdown("**What did you expect after 1 year?**")
+        st.bar_chart(counts("expect"), horizontal=True)
+    with c2:
+        st.markdown("**What have you done with your SIP?**")
+        st.bar_chart(counts("done"), horizontal=True)
+        st.markdown("**What do you look at in the app?**")
+        st.bar_chart(counts("look"), horizontal=True)
+        st.markdown("**How often do you check?**")
+        st.bar_chart(counts("freq"), horizontal=True)
+
+    st.subheader("Disruption by segment")
+    seg = st_.assign(segment=st_.young.map({True: "Aged 21–30", False: "Aged 46+"}))
+    tbl = seg.groupby("segment").agg(people=("id", "count"), disrupted=("disrupted", "sum"),
+                                     avg_feeling=("feel", "mean")).round(2)
+    st.dataframe(tbl, width="stretch")
+
+    st.subheader("Discovery-engine hypotheses vs survey")
+    st.dataframe(pd.DataFrame([
+        ["H1 FD-plus expectation breaks at first negative return", "Partly supported, sharpened",
+         "The break is one fund (often thematic) falling hard; matches engine theme 'My specific fund is lagging'"],
+        ["H2 When unsure, people go outside the app", "Strongly supported", "0 of 13 used in-app help"],
+        ["H3 Finfluencer-led starters drop more", "Directional, too few to conclude",
+         "2 of 2 finfluencer-influenced disrupted vs 2 of 11 others; family is the main starting influence"],
+        ["H4 Some stops are failed skips / mandates", "Not seen", "No mandate or skip failures reported"],
+        ["Months 6–12 are the danger zone", "Can't test", "No respondent started in the last 12 months"],
+    ], columns=["Hypothesis", "Verdict", "Evidence"]), hide_index=True, width="stretch")
+
+    st.subheader("In their words")
+    for col, label in [("what_happening", "What was happening when you changed your SIP"),
+                       ("confuses", "What confuses you in the app"), ("keep_going", "What would keep you investing")]:
+        vals = st_[["id", col]].dropna()
+        if len(vals):
+            st.markdown(f"**{label}**")
+            st.markdown("\n".join(f"- *\"{t}\"* ({i})" for i, t in vals.itertuples(index=False)))
+
+    st.subheader("All responses")
+    st.dataframe(sv, hide_index=True, width="stretch")
+    st.caption("Limits: n = 13 starters from a convenience sample; everyone started more than a year ago (recall bias). "
+               "The 'why' behind each change is being explored in 5–6 follow-up interviews.")
