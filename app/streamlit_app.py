@@ -248,9 +248,3 @@ with tab_eval:
 - Reddit dominates the relevant posts; app-store reviews over-represent complaints; people who quietly stop rarely post.
 - Segment fields (income stability, money source) are stated in fewer than 100 posts, so segment patterns need primary research.
 """)
-    gr = os.path.join(HERE, "data", "golden_report.md")
-    st.subheader("Golden set (human vs AI)")
-    if os.path.exists(gr):
-        st.markdown(open(gr).read())
-    else:
-        st.info("20 hand-labelled posts are being scored against the AI; results will appear here.")
