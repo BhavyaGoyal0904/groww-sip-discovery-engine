@@ -19,9 +19,9 @@ def get_key():
 def model_name():
     try:
         import streamlit as st
-        return st.secrets.get("MISTRAL_MODEL", "mistral-small-latest")
+        return st.secrets.get("MISTRAL_MODEL", "ministral-14b-2512")
     except Exception:
-        return os.environ.get("MISTRAL_MODEL", "mistral-small-latest")
+        return os.environ.get("MISTRAL_MODEL", "ministral-14b-2512")
 
 
 def chat_json(prompt, system, temperature=0.0, timeout=60):
@@ -29,14 +29,19 @@ def chat_json(prompt, system, temperature=0.0, timeout=60):
     key = get_key()
     if not key:
         raise RuntimeError("No MISTRAL_API_KEY configured.")
-    r = requests.post(
-        MISTRAL_URL,
-        headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-        json={"model": model_name(), "temperature": temperature,
-              "response_format": {"type": "json_object"},
-              "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}]},
-        timeout=timeout,
-    )
+    import time
+    for attempt in range(3):  # free tier allows ~0.5 requests/second: back off briefly on 429
+        r = requests.post(
+            MISTRAL_URL,
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"model": model_name(), "temperature": temperature,
+                  "response_format": {"type": "json_object"},
+                  "messages": [{"role": "system", "content": system}, {"role": "user", "content": prompt}]},
+            timeout=timeout,
+        )
+        if r.status_code != 429:
+            break
+        time.sleep(2.5 * (attempt + 1))
     if r.status_code == 401:
         raise RuntimeError("The Mistral API key was rejected (401).")
     if r.status_code == 429:
