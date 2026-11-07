@@ -46,7 +46,7 @@ st.caption("Why do first-time mutual-fund investors stop their SIPs in the first
 if not HAS_KEY:
     st.warning("AI features are off: no MISTRAL_API_KEY is configured. The dashboard and evidence search still work.")
 
-tab_dash, tab_ask, tab_tag, tab_eval, tab_flow = st.tabs(["Dashboard", "Ask the data", "Tag a review (live)", "Quality & limits", "Workflow"])
+tab_dash, tab_ask, tab_tag, tab_flow = st.tabs(["Dashboard", "Ask the data", "Tag a review (live)", "Workflow"])
 
 # ---------------- Dashboard ----------------
 with tab_dash:
@@ -356,19 +356,3 @@ digraph B { rankdir=TB; bgcolor="transparent"; node [shape=box, style="rounded,f
     st.markdown("Python · pandas · sentence-transformers (multilingual MiniLM) · scikit-learn (logistic regression, k-means) · "
                 "LLM tagging with a JSON-schema codebook · Mistral (live app) · Streamlit · code on "
                 "[GitHub](https://github.com/BhavyaGoyal0904/groww-sip-discovery-engine).")
-
-# ---------------- Quality & limits ----------------
-with tab_eval:
-    st.subheader("Quality gates in this app")
-    st.markdown("""
-- **Ask the data:** answers come only from retrieved posts; must cite ≥2 posts; every [P#] must exist; quoted words must appear in
-  the cited post; advice-seeking questions are declined and pointed to official sources (AMFI, scheme documents).
-- **Tag a review:** all fields present; only allowed codebook values; evidence quote must be verbatim; action and signal must agree;
-  no advice language. Failing outputs are withheld, not shown.
-""")
-    st.subheader("Known limits")
-    st.markdown(f"""
-- Stop/pause classifier precision was only {meta['cv']['stop_p']:.0%}, so severity uses AI-tagged posts, not the classifier.
-- Reddit dominates the relevant posts; app-store reviews over-represent complaints; people who quietly stop rarely post.
-- Segment fields (income stability, money source) are stated in fewer than 100 posts, so segment patterns need primary research.
-""")
