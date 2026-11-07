@@ -46,7 +46,7 @@ st.caption("Why do first-time mutual-fund investors stop their SIPs in the first
 if not HAS_KEY:
     st.warning("AI features are off: no MISTRAL_API_KEY is configured. The dashboard and evidence search still work.")
 
-tab_dash, tab_ask, tab_tag, tab_eval, tab_flow = st.tabs(["Dashboard", "Ask the data", "Tag a review (live)", "Quality & limits", "How the engine works"])
+tab_dash, tab_ask, tab_tag, tab_eval, tab_flow = st.tabs(["Dashboard", "Ask the data", "Tag a review (live)", "Quality & limits", "Workflow"])
 
 # ---------------- Dashboard ----------------
 with tab_dash:
@@ -249,29 +249,55 @@ digraph G {{
                "green house = human review. Labels in [brackets] say the same thing for anyone who cannot rely on colour.")
 
     st.subheader("Step by step")
-    steps = pd.DataFrame([
-        ["1 Collect", "Public posts from 6 source types, Nov 2024 – Nov 2026, normalised to one schema",
-         "Scrapers / public APIs", f"{meta['raw_rows']:,} posts", "Source + date kept for every post"],
-        ["2 Rule filter", "Keep posts mentioning SIP / mutual-fund terms; drop < 60 chars, deleted, platform-staff replies, "
-         "trading-only (F&O, intraday, IPO) without MF terms, spam, duplicates", "Rules (regex)", f"{meta['filtered']:,} posts",
-         "Counts logged per rule"],
-        ["3 Embed", "Turn each post into a vector so similar posts sit close together; model handles Hindi and Hinglish",
-         "Local ML (MiniLM)", "1 vector / post", "—"],
-        ["4 Sample", "Pick posts for AI tagging: fixed quota per source so Reddit doesn't drown out app reviews; 30% random so the "
-         "classifier also sees irrelevant posts", "Rules", f"{meta['ai_tagged']:,} posts", "Stratified by source × priority"],
-        ["5 AI tagging", "One LLM pass per post: is it relevant, and if so code it against a fixed 24-field codebook (closed lists, "
-         "so results can be counted)", "LLM", f"{meta['ai_relevant']:,} relevant", "Validator: schema, allowed values, verbatim quote"],
-        ["6 Scale up", "Train a classifier on the AI labels and apply it to every filtered post",
-         "Local ML (logistic regression)", f"{meta['relevant_full']:,} relevant (est.)",
-         f"5-fold CV: accuracy {meta['cv']['rel_acc']:.0%}, precision {meta['cv']['rel_p']:.0%}"],
-        ["7–8 Cluster & name", "Group relevant posts by meaning (k = 30) and have the LLM name each group from its top terms and "
-         "posts", "Local ML + LLM", "30 clusters", "Representative posts shown for review"],
-        ["9 Review", "Merge near-duplicate clusters, fix codebook gaps, standardise rules where AI coders disagreed",
-         "Human", "10 themes, codebook v2", "Every change logged in the Evidence Log"],
-        ["10 Rank", "Score each theme and map it to the metric tree", "Rules", "Ranked opportunities",
-         "Small-sample numbers flagged"],
-    ], columns=["Step", "What happens", "Done by", "Output", "Quality check"])
-    st.dataframe(steps, hide_index=True, width="stretch")
+    st.caption("Open any step to see exactly how it was done.")
+    STEPS = [
+        ("1 · Collect", "Scrapers / public APIs", f"{meta['raw_rows']:,} posts", "Source and date kept for every post",
+         ["Pulled public posts from Google Play, App Store, Reddit, TradingQ&A / ValuePickr, X / LinkedIn and YouTube comments (Nov 2024 – Nov 2026).",
+          "Mapped all six exports to one schema: source, group, thread title, text, author, date, rating, URL, is-reply.",
+          "Kept the thread title next to every reply so a short comment still has context."]),
+        ("2 · Rule filter", "Rules (regex)", f"{meta['filtered']:,} posts", "Counts logged per rule",
+         ["Dropped deleted / empty text and platform-staff replies.",
+          "Dropped trading-only posts (F&O, intraday, IPO) that never mention SIPs or mutual funds.",
+          "Dropped spam: Telegram links, referral codes, phone numbers, fewer than 25 letters.",
+          "Dropped posts under 60 characters, then removed exact duplicates.",
+          "Flagged priority posts: describes an action, a feeling, a first-time investor or a journey stage."]),
+        ("3 · Embed", "Local ML (multilingual MiniLM)", "1 vector per post", "Runs offline, free, repeatable",
+         ["Encoded every post with paraphrase-multilingual-MiniLM-L12-v2 (handles Hindi and Hinglish).",
+          "Stored a 384-dimension vector per post, so posts with similar meaning sit close together."]),
+        ("4 · Stratified sample", "Rules", f"{meta['ai_tagged']:,} posts", "Fixed quota per source",
+         ["Set a quota per source so Reddit volume does not drown out app reviews.",
+          "Filled 70% of each quota with priority posts and 30% at random, so the AI also sees irrelevant posts.",
+          "Split the sample into 10 batches for tagging."]),
+        ("5 · AI relevance + codebook tagging", "LLM", f"{meta['ai_relevant']:,} relevant", "Validator: schema, allowed values, verbatim quote",
+         ["The LLM first decides whether the post is about a real person's own SIP / MF experience.",
+          "If relevant, it codes 24 fields from closed lists (stage, action, triggers, checking, outside-app help, segment, unmet need).",
+          "It must copy a word-for-word evidence quote from the post.",
+          "A rule-based validator checks every output; failures go back for re-coding until 0 errors remain."]),
+        ("6 · Scale to full corpus", "Local ML (logistic regression)", f"{meta['relevant_full']:,} relevant (est.)",
+         f"5-fold CV: accuracy {meta['cv']['rel_acc']:.0%}, precision {meta['cv']['rel_p']:.0%}",
+         ["Trained a classifier on the AI's relevance labels using embeddings plus rule features.",
+          "Checked it with 5-fold cross-validation before trusting it.",
+          "Applied it to every filtered post; prevalence is re-weighted for the sampling design."]),
+        ("7 · Cluster", "Local ML (k-means)", "30 clusters", "Representative posts kept per cluster",
+         ["Grouped all relevant posts by meaning with k-means (k = 30) on the embeddings.",
+          "Extracted each cluster's distinctive terms (c-TF-IDF) and its most central posts."]),
+        ("8 · Name clusters", "LLM", "30 draft names", "Names checked against the posts",
+         ["The LLM proposed a name for each cluster from its terms and representative posts.",
+          "Names are drafts only; a human reviews them in the next step."]),
+        ("9 · Review and merge", "Human", "10 themes, codebook v2", "Every change logged in the Evidence Log",
+         ["Merged near-duplicate clusters into 10 themes and mapped each to the metric tree (M1–M6).",
+          "Fixed codebook gaps (e.g. added 'irregular income vs fixed SIP' and 'platform cancelled SIP').",
+          "Standardised rules where AI coders disagreed (most-severe action wins, contract work = variable income).",
+          "Rated each theme's addressability (1–5) for Groww without fund advice or fear / FOMO."]),
+        ("10 · Quantify and rank", "Rules", "Ranked opportunities", "Small-sample numbers flagged",
+         ["Scored each theme on reach, severity, first-year share and addressability (weights below).",
+          "Ran cross-tabs (expectation × outcome, stage × outcome, influence × outcome) to find the strongest signals.",
+          "Ranked themes and wrote the findings, gaps and limitations."]),
+    ]
+    for title, by, out_, qc, sub in STEPS:
+        with st.expander(f"**{title}**  —  {by}  ·  {out_}"):
+            st.markdown("\n".join(f"{i}. {x}" for i, x in enumerate(sub, 1)))
+            st.caption(f"Done by: {by}  ·  Output: {out_}  ·  Quality check: {qc}")
 
     a, b = st.columns(2)
     with a:
