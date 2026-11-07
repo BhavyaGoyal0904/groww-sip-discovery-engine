@@ -1,0 +1,7 @@
+data/
+*.parquet
+*.npy
+__pycache__/
+.streamlit/secrets.toml
+app/.streamlit/secrets.toml
+.DS_Store
