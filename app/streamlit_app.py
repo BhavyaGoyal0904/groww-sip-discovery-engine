@@ -46,7 +46,7 @@ st.caption("Why do first-time mutual-fund investors stop their SIPs in the first
 if not HAS_KEY:
     st.warning("AI features are off: no MISTRAL_API_KEY is configured. The dashboard and evidence search still work.")
 
-tab_dash, tab_flow, tab_ask, tab_tag, tab_eval = st.tabs(["Dashboard", "How the engine works", "Ask the data", "Tag a review (live)", "Quality & limits"])
+tab_dash, tab_ask, tab_tag, tab_eval, tab_flow = st.tabs(["Dashboard", "Ask the data", "Tag a review (live)", "Quality & limits", "How the engine works"])
 
 # ---------------- Dashboard ----------------
 with tab_dash:
@@ -227,8 +227,8 @@ with tab_flow:
                 "rules (free, deterministic), a local ML model, an LLM, or a human review.")
     st.graphviz_chart(f"""
 digraph G {{
-  rankdir=TB; nodesep=0.35; ranksep=0.32; bgcolor="transparent";
-  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.18,0.08", penwidth=1.2];
+  rankdir=TB; nodesep=0.25; ranksep=0.22; bgcolor="transparent"; size="6.5,11";
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=9, margin="0.12,0.05", penwidth=0.8];
   edge [color="#6b7280", arrowsize=0.7];
   src  [label="1  COLLECT\\n6 sources: Play Store, App Store, Reddit,\\nTradingQ&A / ValuePickr, X / LinkedIn, YouTube\\n{meta['raw_rows']:,} posts", fillcolor="#e5e7eb"];
   flt  [label="2  RULE FILTER  [rules]\\nSIP/MF terms, length, staff replies,\\ntrading-only, spam, duplicates\\n→ {meta['filtered']:,} posts", fillcolor="#dbeafe"];
@@ -243,8 +243,8 @@ digraph G {{
   scr  [label="10  QUANTIFY & RANK  [rules]\\nreach · severity · first-year share ·\\nsegment skew · addressability → score", fillcolor="#dbeafe"];
   out  [label="OPPORTUNITY AREAS\\nmapped to the metric tree (M1–M6)", fillcolor="#e5e7eb", shape=doubleoctagon];
   src -> flt -> emb -> smp -> tag -> val -> cls -> clu -> nam -> hum -> scr -> out;
-  val -> tag [label=" fail → re-code", fontsize=9, fontcolor="#6b7280", style=dashed];
-}}""", width="stretch")
+  val -> tag [label=" fail → re-code", fontsize=8, fontcolor="#6b7280", style=dashed];
+}}""", width="content")
     st.caption("Legend: grey = data · blue = rules / local ML (free, repeatable) · yellow = LLM · red octagon = automatic quality gate · "
                "green house = human review. Labels in [brackets] say the same thing for anyone who cannot rely on colour.")
 
@@ -312,20 +312,20 @@ without recommending funds or using fear / FOMO.
     with c1:
         st.markdown("**Ask the data**")
         st.graphviz_chart("""
-digraph A { rankdir=TB; bgcolor="transparent"; node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, fillcolor="#dbeafe"];
+digraph A { rankdir=TB; bgcolor="transparent"; node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=9, penwidth=0.8, fillcolor="#dbeafe"];
   q [label="Question"]; g [label="Advice guard [rules]\\nfund-pick questions declined", shape=octagon, fillcolor="#fecaca"];
   r [label="Retrieve 18 posts [BM25]"]; l [label="Answer only from them [LLM]", fillcolor="#fde68a"];
   v [label="Checks [rules]: ≥2 citations, no invented P#,\\nverbatim quotes, no advice", shape=octagon, fillcolor="#fecaca"];
   s [label="Show answer + checks", fillcolor="#bbf7d0"]; f [label="Withhold → show raw evidence", fillcolor="#e5e7eb"];
-  q -> g -> r -> l -> v; v -> s [label=" pass", fontsize=9]; v -> f [label=" fail", fontsize=9]; }""", width="stretch")
+  q -> g -> r -> l -> v; v -> s [label=" pass", fontsize=9]; v -> f [label=" fail", fontsize=8]; }""", width="content")
     with c2:
         st.markdown("**Tag a review**")
         st.graphviz_chart("""
-digraph B { rankdir=TB; bgcolor="transparent"; node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, fillcolor="#dbeafe"];
+digraph B { rankdir=TB; bgcolor="transparent"; node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=9, penwidth=0.8, fillcolor="#dbeafe"];
   p [label="Pasted post"]; l [label="Code against codebook v2 [LLM]", fillcolor="#fde68a"];
   v [label="Checks [rules]: all fields, allowed values,\\nverbatim quote, action ↔ signal agree, no advice", shape=octagon, fillcolor="#fecaca"];
   s [label="Show tags + theme it feeds", fillcolor="#bbf7d0"]; f [label="Withhold tags, show which check failed", fillcolor="#e5e7eb"];
-  p -> l -> v; v -> s [label=" pass", fontsize=9]; v -> f [label=" fail", fontsize=9]; }""", width="stretch")
+  p -> l -> v; v -> s [label=" pass", fontsize=9]; v -> f [label=" fail", fontsize=8]; }""", width="content")
 
     st.subheader("Stack")
     st.markdown("Python · pandas · sentence-transformers (multilingual MiniLM) · scikit-learn (logistic regression, k-means) · "
