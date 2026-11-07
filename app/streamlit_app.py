@@ -227,26 +227,33 @@ with tab_flow:
                 "rules (free, deterministic), a local ML model, an LLM, or a human review.")
     st.graphviz_chart(f"""
 digraph G {{
-  rankdir=TB; nodesep=0.25; ranksep=0.22; bgcolor="transparent"; size="6.5,11";
-  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=9, margin="0.12,0.05", penwidth=0.8];
+  rankdir=LR; nodesep=0.45; ranksep=0.35; bgcolor="transparent"; newrank=true;
+  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=11, margin="0.12,0.06", penwidth=0.8, width=1.9];
   edge [color="#6b7280", arrowsize=0.7];
-  src  [label="1  COLLECT\\n6 sources: Play Store, App Store, Reddit,\\nTradingQ&A / ValuePickr, X / LinkedIn, YouTube\\n{meta['raw_rows']:,} posts", fillcolor="#e5e7eb"];
-  flt  [label="2  RULE FILTER  [rules]\\nSIP/MF terms, length, staff replies,\\ntrading-only, spam, duplicates\\n→ {meta['filtered']:,} posts", fillcolor="#dbeafe"];
-  emb  [label="3  EMBED  [local ML]\\nmultilingual MiniLM (Hindi / Hinglish)\\n→ 384-dim vector per post", fillcolor="#dbeafe"];
-  smp  [label="4  STRATIFIED SAMPLE  [rules]\\n{meta['ai_tagged']:,} posts across all 6 sources\\n70% high-priority, 30% random", fillcolor="#dbeafe"];
-  tag  [label="5  AI RELEVANCE + CODEBOOK TAGGING  [LLM]\\n24 fields: stage, action, triggers, checking,\\noutside-app help, segment, unmet need, quote", fillcolor="#fde68a", shape=box];
-  val  [label="VALIDATOR  [rules]\\nschema · allowed values · quote verbatim\\n→ {meta['validator_errors']} errors after fixes", fillcolor="#fecaca", shape=octagon];
-  cls  [label="6  SCALE TO FULL CORPUS  [local ML]\\nclassifier trained on AI labels\\nrelevance precision {meta['cv']['rel_p']:.0%} → {meta['relevant_full']:,} posts", fillcolor="#dbeafe"];
-  clu  [label="7  CLUSTER  [local ML]\\nk-means, k = 30", fillcolor="#dbeafe"];
-  nam  [label="8  NAME CLUSTERS  [LLM]\\nterms + representative posts", fillcolor="#fde68a"];
-  hum  [label="9  REVIEW & MERGE  [human]\\n30 clusters → 10 themes\\ncodebook v1 → v2", fillcolor="#bbf7d0", shape=house];
-  scr  [label="10  QUANTIFY & RANK  [rules]\\nreach · severity · first-year share ·\\nsegment skew · addressability → score", fillcolor="#dbeafe"];
-  out  [label="OPPORTUNITY AREAS\\nmapped to the metric tree (M1–M6)", fillcolor="#e5e7eb", shape=doubleoctagon];
-  src -> flt -> emb -> smp -> tag -> val -> cls -> clu -> nam -> hum -> scr -> out;
-  val -> tag [label=" fail → re-code", fontsize=8, fontcolor="#6b7280", style=dashed];
-}}""", width="content")
+  src [label="1  COLLECT\n6 public sources\n{meta['raw_rows']:,} posts", fillcolor="#e5e7eb"];
+  flt [label="2  RULE FILTER [rules]\nMF terms, spam, dupes\n→ {meta['filtered']:,}", fillcolor="#dbeafe"];
+  emb [label="3  EMBED [local ML]\nmultilingual MiniLM\n384-dim vectors", fillcolor="#dbeafe"];
+  smp [label="4  SAMPLE [rules]\n{meta['ai_tagged']:,} posts\n70% priority, 30% random", fillcolor="#dbeafe"];
+  tag [label="5  AI TAGGING [LLM]\nrelevance + 24-field\ncodebook", fillcolor="#fde68a"];
+  val [label="VALIDATOR [rules]\nschema · values · quote\n{meta['validator_errors']} errors left", fillcolor="#fecaca", shape=octagon];
+  cls [label="6  SCALE UP [local ML]\nclassifier, precision {meta['cv']['rel_p']:.0%}\n→ {meta['relevant_full']:,} relevant", fillcolor="#dbeafe"];
+  clu [label="7  CLUSTER [local ML]\nk-means, k = 30", fillcolor="#dbeafe"];
+  nam [label="8  NAME [LLM]\nterms + sample posts", fillcolor="#fde68a"];
+  hum [label="9  REVIEW [human]\n30 clusters → 10 themes\ncodebook v2", fillcolor="#bbf7d0", penwidth=2];
+  scr [label="10  RANK [rules]\nreach · severity ·\nfirst-year · addressability", fillcolor="#dbeafe"];
+  out [label="OPPORTUNITY\nAREAS\nmapped to M1–M6", fillcolor="#e5e7eb", shape=doubleoctagon];
+  src -> flt -> emb -> smp -> tag -> val;
+  val -> cls;
+  cls -> clu -> nam -> hum -> scr -> out [constraint=false];
+  val -> tag [label=" fail → re-code", fontsize=9, fontcolor="#6b7280", style=dashed, constraint=false];
+  {{rank=same; src; out}} {{rank=same; flt; scr}} {{rank=same; emb; hum}}
+  {{rank=same; smp; nam}} {{rank=same; tag; clu}} {{rank=same; val; cls}}
+  src -> out [style=invis]; flt -> scr [style=invis]; emb -> hum [style=invis];
+  smp -> nam [style=invis]; tag -> clu [style=invis];
+}}""", width="stretch")
+    st.caption("Follow the arrows: the top row runs left to right, then the flow turns down and the bottom row runs right to left.")
     st.caption("Legend: grey = data · blue = rules / local ML (free, repeatable) · yellow = LLM · red octagon = automatic quality gate · "
-               "green house = human review. Labels in [brackets] say the same thing for anyone who cannot rely on colour.")
+               "green, thick border = human review. Labels in [brackets] say the same thing for anyone who cannot rely on colour.")
 
     st.subheader("Step by step")
     st.caption("Open any step to see exactly how it was done.")
