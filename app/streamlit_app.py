@@ -46,7 +46,7 @@ st.caption("Why do first-time mutual-fund investors stop their SIPs in the first
 if not HAS_KEY:
     st.warning("AI features are off: no MISTRAL_API_KEY is configured. The dashboard and evidence search still work.")
 
-tab_dash, tab_research, tab_ask, tab_tag, tab_flow = st.tabs(["Dashboard", "User research", "Ask the data", "Tag a review (live)", "Workflow"])
+tab_dash, tab_ask, tab_tag, tab_flow, tab_research = st.tabs(["Dashboard", "Ask the data", "Tag a review (live)", "Workflow", "Survey summary"])
 
 # ---------------- Dashboard ----------------
 with tab_dash:
